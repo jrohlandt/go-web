@@ -1,0 +1,11 @@
+{{ define "content" }}
+{{ template "head" }}
+<h2>Films</h2>
+
+<ul>
+    {{ range .Films }}
+    <li><a href="/films/show/{{ .ID }}">{{ .Title }}</a></li>
+    {{ end }}
+</ul>
+{{ template "footer" }}
+{{ end }}

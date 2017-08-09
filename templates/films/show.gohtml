@@ -1,0 +1,11 @@
+{{ define "content" }}
+{{ template "head" }}
+<h2>Film details:</h2>
+
+<ul>
+    <li>Title: {{ .Film.Title }}</li>
+    <li>Year: {{ .Film.Year }}</li>
+    <li>Rating: {{ .Film.Category }}</li>
+</ul>
+{{ template "footer" }}
+{{ end }}

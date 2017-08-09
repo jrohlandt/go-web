@@ -1,0 +1,7 @@
+CREATE TABLE films (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+  title VARCHAR(40),
+  year VARCHAR(4),
+  category VARCHAR(20),
+  PRIMARY KEY (id)
+);
