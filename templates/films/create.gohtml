@@ -1,0 +1,21 @@
+{{ define "content" }}
+{{ template "head" }}
+<h1>Add film entry</h1>
+
+<form action="/films/store/" method="post">
+    <label>Title: </label>
+    <input type="text" name="title" >
+    <br>
+    <br>
+    <label>Year: </label>
+    <input type="text" name="year">
+    <br>
+    <br>
+    <label>Category: </label>
+    <input type="text" name="category">
+    <br>
+    <br>
+    <button type="submit">Add</button>
+</form>
+{{ template "footer" }}
+{{ end }}

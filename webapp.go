@@ -20,6 +20,7 @@ import (
 
 var db *sql.DB
 var err error
+var flash string
 
 type film struct {
 	ID       int
@@ -45,6 +46,7 @@ func main() {
 	r.GET("/films/", Index)
 	r.GET("/films/show/:id", Show)
 	r.GET("/films/create", Create)
+	r.POST("/films/store", Store)
 
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
@@ -79,18 +81,43 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // Create, displays a html form for creating film entries
 func Create(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	// todo move this code to Store function and then execute html form template here
+	data := struct {
+		Title string
+	}{
+		Title: "Add film",
+	}
+
+	renderView(w, "templates/films/", "create.gohtml", data)
+
+}
+
+// Store, saves film entry to database
+func Store(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	fmt.Println("title", r.FormValue("title"))
+
+	if len(r.FormValue("title")) == 0 {
+		//fmt.Fprintln(w, "title field is required.")
+		flash = "the title is required"
+		http.Redirect(w, r,"/films/create/", http.StatusSeeOther)
+		return
+	}
+
+	//return
 	stmt, err := db.Prepare("INSERT films SET title=?, year=?, category=?")
 	handleErr(err)
 	defer stmt.Close()
 
-	result, err := stmt.Exec("Mad Max 2", "1981", "action")
+	result, err := stmt.Exec(r.FormValue("title"), "1981", "action")
 	handleErr(err)
 
 	affectedRows, err := result.RowsAffected()
 	handleErr(err)
 
 	fmt.Fprintf(w, "Inserted %d record/s.", affectedRows)
+
+	http.Redirect(w, r, "/films/", http.StatusSeeOther)
+	return
 }
 
 // Show, shows the details of a film entry
