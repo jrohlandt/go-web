@@ -74,7 +74,7 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		Title: "List",
 	}
 
-	renderView(w, "templates/films/", "index.gohtml", data)
+	renderView(w, "templates/films/", "index.html", data)
 	return
 }
 
@@ -87,7 +87,7 @@ func Create(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		Title: "Add film",
 	}
 
-	renderView(w, "templates/films/", "create.gohtml", data)
+	renderView(w, "templates/films/", "create.html", data)
 
 }
 
@@ -140,23 +140,23 @@ func Show(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 		Title: f.Title,
 	}
 
-	renderView(w, "templates/films/", "show.gohtml", data)
+	renderView(w, "templates/films/", "show.html", data)
 	return
 }
 
 func renderView(w http.ResponseWriter, templatePath string, templateName string, data interface{}) {
 
 	t := templatePath + templateName // todo check if templatePath ends with "/" and append it if it doesn't
-	templates, err := template.ParseFiles(t, "templates/layout/head.gohtml", "templates/layout/footer.gohtml")
+	templates, err := template.ParseFiles(t, "templates/layout/head.html", "templates/layout/footer.html")
 	if err != nil {
 		log.Fatalln("Error parsing template.", err)
 	}
-	//tpl.ExecuteTemplate(w, "show.gohtml", data)
-	t1 := templates.Lookup("head.gohtml")
+	//tpl.ExecuteTemplate(w, "show.html", data)
+	t1 := templates.Lookup("head.html")
 	t1.ExecuteTemplate(w, "head", data)
 	t2 := templates.Lookup(templateName)
 	t2.ExecuteTemplate(w, "content", data)
-	t3 := templates.Lookup("footer.gohtml")
+	t3 := templates.Lookup("footer.html")
 	t3.ExecuteTemplate(w, "footer", data)
 	return
 }
