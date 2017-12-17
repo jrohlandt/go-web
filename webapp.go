@@ -2,9 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
+	// "fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/julienschmidt/httprouter"
+	"github.com/satori/go.uuid"
 	"html/template"
 	"log"
 	"net/http"
@@ -30,6 +31,15 @@ type film struct {
 	Category string
 }
 
+type user struct {
+	Email     string
+	FirstName string
+	LastName  string
+}
+
+var dbUsers = map[string]user{}      // email, user
+var dbSessions = map[string]string{} // sessionid, email
+
 func main() {
 	db, err = sql.Open("mysql", "root:xocjm@tcp(127.0.0.1:3306)/go_local?charset=utf8")
 	handleErr(err)
@@ -43,6 +53,8 @@ func main() {
 	//http.HandleFunc("/favicon.ico", faviconHandler)
 
 	r := httprouter.New()
+	r.GET("/login", loginForm)
+	r.POST("/login", authenticateUser)
 	r.GET("/films/", Index)
 	r.GET("/films/show/:id", Show)
 	r.GET("/films/create", Create)
@@ -51,10 +63,108 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
 
+func loginForm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// fmt.Print(dbUsers)
+	// fmt.Print(dbSessions)
+	// get cookie
+	cookie, err := r.Cookie("session")
+	if err == http.ErrNoCookie {
+		cookie = &http.Cookie{
+			Name:  "session",
+			Value: uuid.NewV4().String(),
+			//Secure: true,
+			HttpOnly: true, // cannot access this cookie with Javascript
+		}
+		http.SetCookie(w, cookie)
+	}
+
+	// if user exists already, get user
+	var u user
+	sessionId := cookie.Value
+	if email, ok := dbSessions[sessionId]; ok {
+		u = dbUsers[email]
+		http.Redirect(w, r, "/films", http.StatusSeeOther)
+		return
+	}
+
+	tpl, err := template.ParseFiles("templates/auth/login.html")
+	if err != nil {
+		log.Fatalln("Error parsing template.", err)
+	}
+	tpl.ExecuteTemplate(w, "login.html", u)
+}
+
+func authenticateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	cookie, err := r.Cookie("session")
+	if err == http.ErrNoCookie {
+		cookie = &http.Cookie{
+			Name:  "session",
+			Value: uuid.NewV4().String(),
+			//Secure: true,
+			HttpOnly: true, // cannot access this cookie with Javascript
+		}
+		http.SetCookie(w, cookie)
+	}
+
+	// if user is already logged in, redirect to default
+	var u user
+	sessionId := cookie.Value
+	if _, ok := dbSessions[sessionId]; ok {
+		http.Redirect(w, r, "/films", http.StatusSeeOther)
+		return
+	}
+
+	email := r.FormValue("email")
+	u, err = getUser(email)
+	if err != nil {
+		// fmt.Print("user was not found");
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	dbSessions[sessionId] = u.Email
+	dbUsers[u.Email] = u
+
+	http.Redirect(w, r, "/films", http.StatusSeeOther)
+	return
+}
+
+func getUser(email string) (user, error) {
+	stmt, err := db.Prepare("SELECT firstname, lastname, email FROM users WHERE email = ? LIMIT 1")
+	defer stmt.Close()
+	handleErr(err)
+
+	var u user
+	err = stmt.QueryRow(email).Scan(&u.FirstName, &u.LastName, &u.Email)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
 // Index, lists all the film entries
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
+	// fmt.Print(dbUsers)
+	// fmt.Print(dbSessions)
+
+	cookie, err := r.Cookie("session")
+	if err == http.ErrNoCookie {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	// userId, ok := dbSessions[cookie.Value]
+	_, ok := dbSessions[cookie.Value]
+
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
 	rows, err := db.Query("SELECT id, title, year, category FROM films")
+	defer rows.Close()
 	handleErr(err)
 
 	films := []film{}
@@ -65,6 +175,7 @@ func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		handleErr(err)
 		films = append(films, f)
 	}
+	handleErr(rows.Err())
 
 	data := struct {
 		Films []film
@@ -94,7 +205,7 @@ func Create(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 // Store, saves film entry to database
 func Store(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	fmt.Println("title", r.FormValue("title"))
+	// fmt.Println("title", r.FormValue("title"))
 
 	if len(r.FormValue("title")) == 0 {
 		//fmt.Fprintln(w, "title field is required.")
@@ -111,12 +222,13 @@ func Store(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	result, err := stmt.Exec(r.FormValue("title"), "1981", "action")
 	handleErr(err)
 
-	affectedRows, err := result.RowsAffected()
+	// affectedRows, err := result.RowsAffected()
+	_, err = result.RowsAffected()
 	handleErr(err)
 
-	fmt.Fprintf(w, "Inserted %d record/s.", affectedRows)
+	// fmt.Fprintf(w, "Inserted %d record/s.", affectedRows)
 
-	http.Redirect(w, r, "/films/", http.StatusSeeOther)
+	http.Redirect(w, r, "/films", http.StatusSeeOther)
 	return
 }
 
