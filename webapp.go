@@ -1,13 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/julienschmidt/httprouter"
 	"html/template"
 	"log"
 	"net/http"
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/julienschmidt/httprouter"
 )
 
 // index: list of movies
@@ -99,7 +99,7 @@ func Store(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if len(r.FormValue("title")) == 0 {
 		//fmt.Fprintln(w, "title field is required.")
 		flash = "the title is required"
-		http.Redirect(w, r,"/films/create/", http.StatusSeeOther)
+		http.Redirect(w, r, "/films/create/", http.StatusSeeOther)
 		return
 	}
 
@@ -133,10 +133,10 @@ func Show(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	err = row.Scan(&f.ID, &f.Title, &f.Year, &f.Category)
 
 	data := struct {
-		Film film
+		Film  film
 		Title string
 	}{
-		Film: f,
+		Film:  f,
 		Title: f.Title,
 	}
 
