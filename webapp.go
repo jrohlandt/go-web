@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	// "fmt"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/julienschmidt/httprouter"
 	"github.com/satori/go.uuid"
@@ -60,13 +60,12 @@ func main() {
 	r.GET("/films/create", Create)
 	r.POST("/films/store", Store)
 
+	fmt.Println("Web server is running at http://localhost:8000 ")
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
 
 func loginForm(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// fmt.Print(dbUsers)
-	// fmt.Print(dbSessions)
-	// get cookie
+
 	cookie, err := r.Cookie("session")
 	if err == http.ErrNoCookie {
 		cookie = &http.Cookie{
@@ -131,6 +130,11 @@ func authenticateUser(w http.ResponseWriter, r *http.Request, _ httprouter.Param
 }
 
 func getUser(email string) (user, error) {
+
+	if u, ok := dbUsers[email]; ok {
+		return u, nil
+	}
+
 	stmt, err := db.Prepare("SELECT firstname, lastname, email FROM users WHERE email = ? LIMIT 1")
 	defer stmt.Close()
 	handleErr(err)
@@ -147,18 +151,13 @@ func getUser(email string) (user, error) {
 // Index, lists all the film entries
 func Index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
-	// fmt.Print(dbUsers)
-	// fmt.Print(dbSessions)
-
 	cookie, err := r.Cookie("session")
 	if err == http.ErrNoCookie {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	// userId, ok := dbSessions[cookie.Value]
-	_, ok := dbSessions[cookie.Value]
 
-	if !ok {
+	if _, ok := dbSessions[cookie.Value]; !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
